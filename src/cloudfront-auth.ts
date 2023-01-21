@@ -70,8 +70,10 @@ export interface CloudFrontAuthProps {
 }
 
 export interface UpdateClientProps {
-  signOutUrl: string
-  callbackUrl: string
+  signOutUrl?: string
+  signOutUrls?: string[]
+  callbackUrl?: string
+  callbackUrls?: string[]
   /**
    * List of identity providers used for the client.
    *
@@ -373,7 +375,9 @@ export class CloudFrontAuth extends Construct {
       client: this.client,
       userPool: this.userPool,
       signOutUrl: props.signOutUrl,
+      signOutUrls: props.signOutUrls,
       callbackUrl: props.callbackUrl,
+      callbackUrls: props.callbackUrls,
       oauthScopes: this.oauthScopes,
       identityProviders:
         props.identityProviders ??
