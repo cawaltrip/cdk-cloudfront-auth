@@ -1,3 +1,4 @@
+import * as cdk from "aws-cdk-lib"
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront"
 import {
   AddBehaviorOptions,
@@ -91,7 +92,7 @@ export class CloudFrontAuth extends Construct {
 
   private readonly userPool: cognito.IUserPool
   private readonly clientCreated: boolean
-  public readonly client: cognito.UserPoolClient
+  public client: cognito.UserPoolClient
 
   private readonly checkAuthFn: lambda.IVersion
   private readonly httpHeadersFn: lambda.IVersion
@@ -347,18 +348,25 @@ export class CloudFrontAuth extends Construct {
 
   /**
    * Update Cognito client to use the proper URLs and OAuth scopes.
-   *
-   * TODO: In case the client configuration changes and is updated
-   *  by CloudFormation, this will not be reapplied causing the client
-   *  to not be correctly configured.
-   *  How can we avoid this scenario?
    */
-  public updateClient(id: string, props: UpdateClientProps): ClientUpdate {
-    if (!this.clientCreated) {
+  public updateClient(
+    id: string,
+    props: UpdateClientProps,
+    client?: cognito.UserPoolClient,
+  ): ClientUpdate {
+    if (!this.clientCreated && !client) {
       throw new Error(
         "You cannot use updateClient with a user-provided Cognito Client " +
-          "since it would override the user-provided settings",
+          "without providing the client to this function, since it would " +
+          "override the user-provided settings",
       )
+    }
+
+    // If a new client is passed in, update the client we are storing
+    // internally.  This lets us keep the client we store consistent with one
+    // created by the user.
+    if (client) {
+      this.client = client
     }
 
     return new ClientUpdate(this, id, {
