@@ -18,23 +18,25 @@ export class ClientUpdate extends Construct {
   constructor(scope: Construct, id: string, props: ClientUpdateProps) {
     super(scope, id)
 
-    if (!props.signOutUrl && !props.signOutUrls) {
-      throw new Error("You must pass in either signOutUrl or signOutUrls")
-    }
-    if (!props.callbackUrl && !props.callbackUrls) {
-      throw new Error("You must pass in either callbackUrl or callbackUrls")
-    }
-
-    let signOutUrls = props.signOutUrls || []
-    let callbackUrls = props.callbackUrls || []
+    const signOutUrls = props.signOutUrls || []
+    const callbackUrls = props.callbackUrls || []
 
     if (props.signOutUrl) {
       signOutUrls.push(props.signOutUrl)
-      signOutUrls = [...new Set(signOutUrls)]
     }
     if (props.callbackUrl) {
       callbackUrls.push(props.callbackUrl)
-      callbackUrls = [...new Set(callbackUrls)]
+    }
+
+    const cfnClient = props.client.node
+      .defaultChild as cognito.CfnUserPoolClient
+
+    if (cfnClient.callbackUrLs) {
+      callbackUrls.push(...cfnClient.callbackUrLs)
+    }
+
+    if (cfnClient.logoutUrLs) {
+      signOutUrls.push(...cfnClient.logoutUrLs)
     }
 
     new cr.AwsCustomResource(this, "Resource", {
@@ -47,8 +49,8 @@ export class ClientUpdate extends Construct {
           SupportedIdentityProviders: props.identityProviders,
           AllowedOAuthScopes: props.oauthScopes,
           ClientId: props.client.userPoolClientId,
-          CallbackURLs: callbackUrls,
-          LogoutURLs: signOutUrls,
+          CallbackURLs: [...new Set(callbackUrls)],
+          LogoutURLs: [...new Set(signOutUrls)],
           UserPoolId: props.userPool.userPoolId,
         },
         physicalResourceId: cr.PhysicalResourceId.of(
