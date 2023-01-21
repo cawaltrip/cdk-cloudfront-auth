@@ -7,14 +7,35 @@ interface ClientUpdateProps {
   oauthScopes: string[]
   client: cognito.IUserPoolClient
   userPool: cognito.IUserPool
-  callbackUrl: string
-  signOutUrl: string
+  callbackUrl?: string
+  callbackUrls?: string[]
+  signOutUrl?: string
+  signOutUrls?: string[]
   identityProviders: string[]
 }
 
 export class ClientUpdate extends Construct {
   constructor(scope: Construct, id: string, props: ClientUpdateProps) {
     super(scope, id)
+
+    if (!props.signOutUrl && !props.signOutUrls) {
+      throw new Error("You must pass in either signOutUrl or signOutUrls")
+    }
+    if (!props.callbackUrl && !props.callbackUrls) {
+      throw new Error("You must pass in either callbackUrl or callbackUrls")
+    }
+
+    let signOutUrls = props.signOutUrls || []
+    let callbackUrls = props.callbackUrls || []
+
+    if (props.signOutUrl) {
+      signOutUrls.push(props.signOutUrl)
+      signOutUrls = [...new Set(signOutUrls)]
+    }
+    if (props.callbackUrl) {
+      callbackUrls.push(props.callbackUrl)
+      callbackUrls = [...new Set(callbackUrls)]
+    }
 
     new cr.AwsCustomResource(this, "Resource", {
       onUpdate: {
@@ -26,8 +47,8 @@ export class ClientUpdate extends Construct {
           SupportedIdentityProviders: props.identityProviders,
           AllowedOAuthScopes: props.oauthScopes,
           ClientId: props.client.userPoolClientId,
-          CallbackURLs: [props.callbackUrl],
-          LogoutURLs: [props.signOutUrl],
+          CallbackURLs: callbackUrls,
+          LogoutURLs: signOutUrls,
           UserPoolId: props.userPool.userPoolId,
         },
         physicalResourceId: cr.PhysicalResourceId.of(
